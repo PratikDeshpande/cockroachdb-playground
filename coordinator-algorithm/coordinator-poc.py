@@ -37,6 +37,57 @@ for each operation received:
 
 
 """
+import time
+
+# TODO: This is algo 2 in the paper. Implement
+def sendToLeaseHolder(operation: dict)->dict:
+    print(f"sending OPERATION {operation} to lease holder node")
+
+    returnValue = None
+    if operation.get("Type") != None and operation["Type"] == "READ":
+        returnValue = "value_2001"
+
+    time.sleep(2)
+    timestamp = time.time()
+    return {
+        "operation": operation,
+        "returnValue": returnValue,
+        "timestamp": timestamp,
+    }
+
+def processTransaction(operations: list[dict]):
+    inflightOperations = []
+    transactionTimeStamp = time.time()
+
+
+    for operation in operations:
+        operation['timestamp'] = transactionTimeStamp
+
+        if operation['commit'] == True:
+            operation['dependencies'] = inflightOperations
+        else:
+            # operation.dependencies = operationP in inflightlight ops such that operationP key == operation.key # basically all the depencency operations that have the same key
+            operationDependences = [operationPrime for operationPrime in inflightOperations if operationPrime['K'] == operation['K']]
+            operation['dependencies'] = operationDependences
+
+
+            # remove operation's dependencies from inflight operations, and add operation itself to inflight ops
+            inflightOperations = [inflightOperation for inflightOperation in inflightOperations if inflightOperation in operation['dependencies']]
+            inflightOperations.append(operation)
+
+        # send operation to lease holder and await response
+        response = sendToLeaseHolder(operation)
+        print(f"response from lease holder: {response}")
+
+        # if response time tamp is greater than op timestamp
+            # if operation k is the same between (txn timestamp, response time stamp):
+                # transactionTimeStamp = response["timestamp"]
+            # else:
+                # throw error
+        # send response to SQL Layer
+        # if operation is commit operation
+            # notify lease holder to commit transaction
+
 
 # Assumption: Transaction has been broken down into a series of sequential operations by SQL layer, with the last operation being 'commit'
 operations = [
@@ -47,26 +98,26 @@ operations = [
         "commit": False
     },
     {
-        "Type": "READ",
+        "Type": "WRITE",
         "K": "key_1001",
-        "V": None,
+        "V": 534673,
         "commit": False
     },
     {
         "Type": "READ",
-        "K": "key_1001",
+        "K": "key_1005",
         "V": None,
         "commit": False
     },
     {
-        "Type": "READ",
-        "K": "key_1001",
-        "V": None,
+        "Type": "WRITE",
+        "K": "key_1005",
+        "V": "ssaftasf",
         "commit": False
     },
     {
         "Type": "READ",
-        "K": "key_1001",
+        "K": "key_1005",
         "V": None,
         "commit": True
     },
@@ -76,3 +127,4 @@ operations = [
 
 print(f"operations: {operations}")
 
+processTransaction(operations)
